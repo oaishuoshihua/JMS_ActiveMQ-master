@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+    <context:annotation-config/>
+    <context:component-scan base-package="com.sodyu.jms.topic_spring"/>
+    <bean id="amqConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <constructor-arg  value="tcp://localhost:61616"/>
+        <property name="useAsyncSend" value="true"/>
+    </bean>
+
+    <bean id="connectionFactory" class="org.springframework.jms.connection.CachingConnectionFactory">
+        <constructor-arg ref="amqConnectionFactory"/>
+        <property name="sessionCacheSize" value="20" />
+    </bean>
+    <bean id="topicDestination" class="org.apache.activemq.command.ActiveMQTopic">
+        <constructor-arg>
+            <value>spring_activemq</value>
+        </constructor-arg>
+    </bean>
+    <!-- 定义JmsTemplate的Queue类型 -->
+    <!--<bean id="jmsQueueTemplate" class="org.springframework.jms.core.JmsTemplate">-->
+        <!--<constructor-arg ref="connectionFactory" />-->
+        <!--&lt;!&ndash; 非pub/sub模型（发布/订阅），即队列模式 &ndash;&gt;-->
+        <!--<property name="pubSubDomain" value="false" />-->
+    <!--</bean>-->
+
+    <!-- 定义JmsTemplate的Topic类型 -->
+    <bean id="jmsTopicTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg ref="connectionFactory" />
+        <!-- pub/sub模型（发布/订阅） -->
+        <property name="pubSubDomain" value="true" />
+    </bean>
+
+    <!--&lt;!&ndash; 发送消息的目的地（一个队列） &ndash;&gt;-->
+    <!--<bean id="destination" class="org.apache.activemq.command.ActiveMQQueue">-->
+        <!--&lt;!&ndash; 设置消息队列的名字 &ndash;&gt;-->
+        <!--<constructor-arg index="0" value="${jms.queueName}" />-->
+    <!--</bean>-->
+
+    <!-- 消息消费者 start-->
+
+    <!-- 定义Queue监听器  -->
+    <!--<bean id="testMessageReceiver" class="com.maven.project.web.jmsMessageOper.TestMonitorQueue"/>
+        <jms:listener-container destination-type="queue" container-type="default" connection-factory="connectionFactory" acknowledge="auto">
+            <jms:listener destination="${jms_test_monitor_data_queue}" ref="testMessageReceiver"/>
+        </jms:listener-container> -->
+
+    <!-- 定义Topic监听器  -->
+    <!--<jms:listener-container destination-type="topic" container-type="default" connection-factory="connectionFactory" acknowledge="auto">
+            <jms:listener destination="test.topic" ref="topicReceiver1"/>
+            <jms:listener destination="test.topic" ref="topicReceiver2"/>
+        </jms:listener-container> -->
+
+    <!-- 定义activme 队列监听 -->
+    <!-- 对应的监听类, com.sodyu.jms.topic_spring.ConsumerListener-->
+    <bean id="testMessageReceiver" class="com.sodyu.jms.topic_spring.ConsumerListener"/>
+    <bean class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="connectionFactory"/>
+        <property name="destination" ref="topicDestination"/>
+        <property name="messageListener" ref="testMessageReceiver"/>
+    </bean>
+
+    <!-- 消息消费者 end -->
+</beans>
